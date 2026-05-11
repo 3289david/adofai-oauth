@@ -1,0 +1,25 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  background: #07070f;
+  color: #f0f0ff;
+}
+
+a {
+  color: #ff8800;
+}
+
+input,
+button {
+  font: inherit;
+}
