@@ -30,7 +30,24 @@ GET https://auth.adofai.net/.well-known/oauth-authorization-server
 
 ---
 
+## Developer site (`dev.adofai.net`)
+
+Run the **same** production build everywhere. Bind **`auth.adofai.net`** for end users (`/login`, `/oauth/authorize`). Bind **`dev.adofai.net`** to the identical deployment — root `/` internally rewrites to **`/dev`**, hosting environment split guides and endpoint tables (`src/middleware.ts`).
+
+Local quick link: **`http://localhost:3010/dev`**
+
+---
+
 ## Environment variables
+
+For day-to-day work, ship **defaults** separately from secrets:
+
+| File template | Rename to |
+|---------------|-----------|
+| `.env.public.example` | `.env` — issuer URLs (`NEXT_PUBLIC_AUTH_ISSUER`, `OAUTH_ISSUER`) |
+| `.env.local.example` | `.env.local` — `DATABASE_URL`, `JWT_SECRET`, Resend/Turnstile keys |
+
+Alternatively copy `.env.example` into `.env.local` as a combined shortcut (everything in one file):
 
 Copy `.env.example` to `.env.local`:
 

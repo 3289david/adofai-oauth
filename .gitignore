@@ -3,6 +3,9 @@ node_modules
 .env
 .env.local
 .env*.local
+!.env.example
+!.env.public.example
+!.env.local.example
 *.log
 .DS_Store
 tsconfig.tsbuildinfo

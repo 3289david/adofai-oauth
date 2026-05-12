@@ -7,6 +7,7 @@ export default function SiteNav() {
         ADOFAI Auth
       </Link>
       <nav className="site-nav-links" aria-label="Main">
+        <Link href="/dev">Developers</Link>
         <Link href="/how-it-works">How it works — A to Z</Link>
         <Link href="/login">Sign in</Link>
         <Link href="/register">Register</Link>
