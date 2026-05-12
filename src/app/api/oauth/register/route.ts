@@ -10,8 +10,23 @@ const bodySchema = z.object({
   token_endpoint_auth_method: z.enum(["none"]).optional(),
 });
 
-/** OAuth 2.0 Dynamic Client Registration (RFC 7591 subset) — PUBLIC clients only (PKCE). */
+function cors(origin: string | null): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": origin ?? "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+/** CORS — any site may obtain a **public PKCE-only** OAuth client programmatically (open ecosystem). */
+export async function OPTIONS(req: NextRequest) {
+  const o = req.headers.get("origin");
+  return new NextResponse(null, { status: 204, headers: cors(o) });
+}
+
+/** OAuth 2.0 Dynamic Client Registration — PUBLIC clients only (PKCE). */
 export async function POST(req: NextRequest) {
+  const origin = req.headers.get("origin");
   try {
     const json = await req.json();
     const data = bodySchema.parse(json);
@@ -37,12 +52,15 @@ export async function POST(req: NextRequest) {
         grant_types: data.grant_types ?? ["authorization_code"],
         token_endpoint_auth_method: "none",
       },
-      { status: 201 }
+      { status: 201, headers: cors(origin) }
     );
   } catch (e) {
     if (e instanceof z.ZodError) {
-      return NextResponse.json({ error: "invalid_client_metadata", detail: e.errors[0]?.message }, { status: 400 });
+      return NextResponse.json(
+        { error: "invalid_client_metadata", detail: e.errors[0]?.message },
+        { status: 400, headers: cors(origin) }
+      );
     }
-    return NextResponse.json({ error: "registration_failed" }, { status: 500 });
+    return NextResponse.json({ error: "registration_failed" }, { status: 500, headers: cors(origin) });
   }
 }

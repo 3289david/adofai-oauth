@@ -1,61 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { signSession, setSessionCookie } from "@/lib/session";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { rateLimit, getIp } from "@/lib/rate-limit";
+import { sendVerificationEmail, isDisposableEmail } from "@/lib/email";
 
 const schema = z.object({
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_-]+$/),
-  email: z.string().email(),
+  username: z.string().min(3).max(20).regex(/^[-a-zA-Z0-9_]+$/),
+  email: z.string().email().max(254),
   password: z.string().min(8).max(128),
+  turnstile: z.string().optional(),
+  honeypot: z.string().optional(),
+  formLoadedAt: z.number().optional(),
 });
 
-function regUrl(req: NextRequest, code: string) {
-  const u = new URL("/register", req.url);
-  u.searchParams.set("error", code);
-  return u;
-}
-
 export async function POST(req: NextRequest) {
+  const ip = getIp(req);
+
+  if (!rateLimit(`register:${ip}`, 2, 30 * 60_000, 24 * 60 * 60_000)) {
+    return NextResponse.json({ error: "Too many registration attempts." }, { status: 429 });
+  }
+
   try {
-    const form = await req.formData();
-    const username = String(form.get("username") ?? "");
-    const email = String(form.get("email") ?? "").trim().toLowerCase();
-    const password = String(form.get("password") ?? "");
+    const body = await req.json();
+    const parsed = schema.parse(body);
+    const { username, email, password, turnstile, honeypot, formLoadedAt } = parsed;
 
-    const parsed = schema.safeParse({ username, email, password });
-    if (!parsed.success) {
-      return NextResponse.redirect(regUrl(req, "invalid"));
+    if (honeypot && honeypot.trim().length > 0) {
+      return NextResponse.json({ ok: true });
     }
 
-    const { username: u, email: em, password: pw } = parsed.data;
+    if (formLoadedAt && Date.now() - formLoadedAt < 1500) {
+      return NextResponse.json({ error: "Form submitted too quickly." }, { status: 400 });
+    }
 
-    const existing = await db.user.findFirst({
-      where: { OR: [{ email: em }, { username: u }] },
-    });
+    const turnstileOk = await verifyTurnstile(turnstile, ip);
+    if (!turnstileOk) {
+      return NextResponse.json({ error: "Human verification failed." }, { status: 400 });
+    }
+
+    if (isDisposableEmail(email)) {
+      return NextResponse.json({ error: "Disposable emails are not allowed." }, { status: 400 });
+    }
+
+    const existing = await db.user.findFirst({ where: { OR: [{ email }, { username }] } });
     if (existing) {
-      return NextResponse.redirect(regUrl(req, "taken"));
+      return NextResponse.json(
+        { error: existing.email === email ? "Email already in use" : "Username taken" },
+        { status: 409 }
+      );
     }
 
-    const passwordHash = await bcrypt.hash(pw, 12);
-    const user = await db.user.create({
-      data: {
-        username: u,
-        email: em,
-        passwordHash,
-      },
+    const passwordHash = await bcrypt.hash(password, 12);
+    const emailVerifyToken = randomBytes(32).toString("hex");
+    const emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60_000);
+
+    await db.user.create({
+      data: { username, email, passwordHash, emailVerifyToken, emailVerifyExpiry, emailVerified: false },
     });
 
-    const token = await signSession({
-      sub: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-    });
+    const mail = await sendVerificationEmail(email, emailVerifyToken);
 
-    const res = NextResponse.redirect(new URL("/", req.url));
-    return setSessionCookie(res, token);
-  } catch {
-    return NextResponse.redirect(regUrl(req, "failed"));
+    return NextResponse.json({ ok: true, email, emailSent: mail.ok }, { status: 201 });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.errors[0]?.message }, { status: 400 });
+    }
+    console.error("[idp register]", err);
+    return NextResponse.json({ error: "Registration failed." }, { status: 500 });
   }
 }

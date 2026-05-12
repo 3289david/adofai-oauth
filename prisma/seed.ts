@@ -10,30 +10,50 @@ async function main() {
       username: "idp_admin",
       email: "admin@adofai.net.local",
       passwordHash: hash,
+      emailVerified: true,
     },
-    update: { passwordHash: hash },
+    update: { passwordHash: hash, emailVerified: true },
   });
 
   await db.oAuthClient.upsert({
     where: { clientId: "adofai_verse_web" },
     create: {
       clientId: "adofai_verse_web",
-      name: "ADOFAI.VERSE (example)",
+      name: "ADOFAI.VERSE",
       redirectUris: [
-        "http://localhost:3000/api/auth/callback/adofai",
-        "https://adofai.net/api/auth/callback/adofai",
+        "http://localhost:3000/api/auth/oauth/callback",
+        "https://adofai.net/api/auth/oauth/callback",
       ],
       isPublic: true,
     },
     update: {
       redirectUris: [
-        "http://localhost:3000/api/auth/callback/adofai",
-        "https://adofai.net/api/auth/callback/adofai",
+        "http://localhost:3000/api/auth/oauth/callback",
+        "https://adofai.net/api/auth/oauth/callback",
       ],
     },
   });
 
-  console.log("Seed OK — user admin@adofai.net.local / password from SEED_USER_PASSWORD; OAuth client adofai_verse_web");
+  await db.oAuthClient.upsert({
+    where: { clientId: "adofai_online_contest" },
+    create: {
+      clientId: "adofai_online_contest",
+      name: "ADOFAI Online Contest",
+      redirectUris: [
+        "http://localhost:3001/api/auth/oauth/callback",
+        "https://contest.adofai.net/api/auth/oauth/callback",
+      ],
+      isPublic: true,
+    },
+    update: {
+      redirectUris: [
+        "http://localhost:3001/api/auth/oauth/callback",
+        "https://contest.adofai.net/api/auth/oauth/callback",
+      ],
+    },
+  });
+
+  console.log("Seed OK — OAuth clients adofai_verse_web & adofai_online_contest; admin user emailVerified:true");
 }
 
 main()
