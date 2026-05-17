@@ -5,11 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ADOFAI Auth — Sign in once for ADOFAI.NET & community apps",
-    template: "%s · ADOFAI Auth",
+    default: "ADOFAI Account — One account for all of ADOFAI",
+    template: "%s · ADOFAI Account",
   },
   description:
-    "Central identity & OAuth server for ADOFAI.NET maps, tournaments, and third-party integrations. Authorization Code + PKCE.",
+    "Create a free ADOFAI account and sign in to ADOFAI.NET, online tournaments, and community sites — all in one place.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,14 +19,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteNav />
         {children}
         <footer className="foot">
-          "A Dance of Fire and Ice" and related marks belong to their owners. ADOFAI Auth is community
-          infrastructure — not affiliated with publishers.
+          &ldquo;A Dance of Fire and Ice&rdquo; and related marks belong to their respective owners. ADOFAI Account is community infrastructure &mdash; not affiliated with the publishers.
           <div style={{ marginTop: "0.75rem" }}>
-            Questions? Read <Link href="/how-it-works">How it works</Link>
+            <Link href="/how-it-works">Help</Link>
             {" · "}
-            <a href="https://dev.adofai.net">Developers (dev.adofai.net)</a>
+            <a href="https://adofai.net">ADOFAI.NET</a>
             {" · "}
-            <a href="https://github.com/3289david/adofai-oauth">Source code</a>
+            <a href="https://github.com/3289david/adofai-oauth">Open source</a>
           </div>
         </footer>
       </body>
